@@ -4,8 +4,6 @@ A1lib.identifyApp("appconfig.json");
 // -------------------------
 console.log(Object.keys(A1lib));
 
-
-
 // Alt1 stuff
 let reader = new Chatbox.default();
 const appColor = A1lib.mixColor(255, 199, 0);
@@ -19,9 +17,9 @@ let pausedTime = 0;
 let timerInterval = null;
 let displayInterval = null;
 
-let sessionStartTime = null;   // real-world ms
-let sessionEndTime = null;     // real-world ms
-let sessionElapsedMs = 0;      // ms duration
+let sessionStartTime = null;
+let sessionEndTime = null;
+let sessionElapsedMs = 0;
 
 // Counters
 let clues = []
@@ -30,23 +28,22 @@ let bikProcRoll = 0;
 
 // Bik page purchases
 const BIK_PURCHASES_KEY = "bikPagePurchases";
-const BIK_PAGE_MINUTES = 45; // one Bik page = 45 min active time
+const BIK_PAGE_MINUTES = 45;
 let bikPurchases = []; // { pages, totalPrice, timestamp }
 
+const pingAudio = new Audio("noise/ping.mp3");
+pingAudio.volume = 0.5;
 
-// Save snapshot storage
 let saveSnapshot = null;
-
-// Save key
 const SAVE_KEY = "cluetracker";
 
 let bikMatrixMode = "percent"; // "percent" | "count" | "cluesPerHour"
 
 
+
 // -------------------------
 // UI Buttons
 // -------------------------
-
 document.getElementById("startBtn").addEventListener("click", startTimer);
 document.getElementById("stopBtn").addEventListener("click", stopTimer);
 document.getElementById("resetBtn").addEventListener("click", resetTimer);
@@ -63,7 +60,6 @@ function drawBuffBarOverlay() {
   const rect = buffReader.getCaptRect();
   if (!rect) return;
 
-  // neon-green-ish overlay for clarity
   const color = A1lib.mixColor(0, 255, 0);
 
   alt1.overLayRect(
@@ -72,136 +68,98 @@ function drawBuffBarOverlay() {
     rect.y,
     rect.width,
     rect.height,
-    2000,   // lasts 2 seconds
-    2       // 2px thickness
+    2000,
+    2
   );
 }
 
 
 // -------------------------
-// Buff tracking (Scripture of Bik)
+// Buff tracking
 // -------------------------
+const BIK = {
+  width: 27,
+  height: 15,
+  data: "GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFxwy/xccMv8XHzb/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFxwy/xccMv8XHDL/Fxwy/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUXUL/FUc9/xccMv8XHDL/Fxwy/xccMP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABNeQv8QoFP/EJdR/xVCPP8XHDL/Fxwx/xccMP8XHDD/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFhsw/xNeQv8QoFP/EY9P/xNeQv8SgEv/Fxww/xccMP8XHDD/Fxwy/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQHC3/Fxwy/xNeQv8QoFP/EYpN/xNeQv8QoFP/EJlR/xRaQP8XHDT/Fxwy/xccM/8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMcMf8WHDL/Fxwy/xNeQv8OlU3/FjI4/xCgU/8Om1H/EnxK/xccM/8XHDL/Fhsw/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAFhwy/xUcMf8XHDL/Fxwy/xNeQv8JQCv/FFVA/xGLTv8JXjv/Fxwy/xceNP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/"
+};
 
-let buffReader = null;
-let buffBorderImg = null;
-let bikImg = null;
-let bikBuffInfo = null; // BuffInfo instance for Scripture of Bik
+const SPIRIT = {
+  width: 27,
+  height: 14,
+  data: "GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/xmWWv8Zllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABKorX/Q5Kk/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIna//Qo6f/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACtoaD/npWU/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACtoaD/nJOR/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACrcqz/mGWa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACnJ7//lSOr/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACnJ7//lCOq/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACmJ77/kyOp/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKgnwP+lJ7z/kyOp/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqCfA/6gnwP+jJrv/kyCo/4UemP8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/GZZa/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAApyfA/6cnwP+iJLr/kyCo/4cem/9vHID/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZllr/"
+};
 
+const TRACKED_BUFFS = [
+  { name: "BIK", img: BIK },
+  { name: "SPIRIT", img: SPIRIT }
+];
 
-// base64 (no "data:image/png;base64," prefix, just the payload)
+let spiritMissingLastTick = false;
 
-
-// -------------------------
-// Buff tracking (Scripture of Bik)
-// -------------------------
-
-// Scripture of Bik icon (27x27)
-const BIK_BASE64 =
-"iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAT6SURBVEhLvZbLc9tUFMZDoU1LbOXKliU/ZPkh2ZbsxA/ZTmxLJk5b8sBNnEehpdACM+x4LDrDdMMwnbIBumBVGIbplBULdmzLH/cx515LfjQMu2rmi0/uyOd3v3OPjrxy75cUXpdW6M/JwOY69RycDao486o492o494UmAwc7d1R8/3yAg28ZtnYSmHgOzofBPdX/VQib9Cs49WycEYxA/AaR6LZfw8G2hYPvGHY/ZWjpcZhKBK6pYbSTxe0h3bOUnG+W5HBR3hC23zYx3irhxKvgxBMO513uty10WwxNncHVNbT0GI+Pn8kY9Y0QQtCLVZvBdpwcbmwWsO+auLVdmpV06nTPNXlyEoHahopOTsXWl5cxfipj8kMMh10L/iAz52pO82XsZDPoFXUBbRRw0F6EEqQ+hQUiWDevwTWUcG33gYzP/pH5Jv/zzOpaCq6eQc/UMbQN7G7ksdcy8V7Xwo1mAQ0qn8PQKiwCm7oMV1e56P+HX3Xw6EkPk8dxjLulaWWWzsxhKmpxDXU1hVY6zV16pSyHbmZk1NMMo48ZRvcZvP1l4EyDmwx3/mTYu6dg6GmY9CrhuYWwyrqKspQQUCWJRjKFjpHBRiaBeoahlmQYPWA4/YNh8ivD4PqrIFKruYbzFxI+ecmw+3UUe62i6Eh/zpkZUUJZEYVDN5QkrLiMeoqhkZnBjn4W8eHjJZCuoGlJ8HwFp8+voP35Vbzrmhy0ACtFE0JSgjskp6YUx2aGYXOaLICNf5pz+RvD6B49Dgl+j6vH0c9p6FoxOHkFZ1PQuW/PYFY0IUTOokL0ZWqMFk9CncYwfiZhy52Cfpf4NCFAS5d5uTuGAs/UUM/E0CgmcT68AEZuQnfRBHJr8rQ0AhTAqqNVvPM+w62nDN79VeHGEDBbldEvaBhaGqS3r3JXZ74datYgksohxUgcxayEWmqdtzWNJpe3N0NvKLqRSkgxgdqGwmFUgW5OgW9qMBMSmtbU1dDmrhacUcvzhpDjfNfdGrkiSCJ0Rsn7O4tN0cmraGWpCgp35SQZKrrCp8lkUBYlnJYyhG0XdLiZNPy7DE/+6vJzCRIGoItEU4Q+uzkVvqUhF4uglU/iej0v5i2fQpXFCUJjavkKEvI49yoomBpU6n5eQ8eIIxmNok2j75VJVJrBaIGulZWVBbmNWLhODzY9b3Q+AiI6ljqQzqqirSO1JmEjIYYCQftmFsOKgd1aYQY72i6HSSv9NTiNa/yd1TlUw3VKTCB67qhLR2eMn1fQgatvXobNVDiyimpM49BWKo2uocOzjBmMXp7z16aZwNVLl5BcW11Y5+VzGG58Ico7fiQ+jVgEmbV1DgvkyBpq8SRvPjedXoSRgvLRNahl0bOzPJ5f/+DHFB6+2Ag3cPpNXFRkXV1QWVJhUyypcJg2V8ZeGUf9Co4GQgHg1tQxxU7tjTD+6G/hKNhEPhJDhakoLwEJRCJoCDueAujz2LPDRPSjJojv3hfOKPY/jIZx7fgabCXB3xa8hOsXa1bGQQWTKYQuipdhg+EMVhleCeNyUuGd10yl+WCgkl0EncE8AQsgHOTbmPgOTnxHOMirOBy/JcDVLJ8UFO9U8xiUDPSKWbT1DG/7jXgSVVnjEDo7mr2zMnpUvkB2qGAD5PDEc3DdzWO4mecx/ZY86ts47JRws1nkD7BfzvK3fFtPozmF8iaZd/a69C9kG89ZMecWQwAAAABJRU5ErkJggg==";
-
-// Buff border (27x27, green outline)
-const BORDER_BASE64 =
-"iVBORw0KGgoAAAANSUhEUgAAABsAAAAbCAYAAACN1PRVAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABCSURBVEhL7daxDQAgDANBwxasxmCsS4jECE8K5JdcX+s219iqKrGTXi+dfs2SjCEZQzKGZAzJGJIxJGNI/2KFj1gK6ntTCO2Nfp8AAAAASUVORK5CYII=";
-
-
-function loadBuffAssets() {
-  const pBorder = A1lib.ImageDetect.imageDataFromBase64(BORDER_BASE64).then(img => {
-    buffBorderImg = img;
-    console.log("buffBorderImg loaded", img.width, img.height);
-  });
-
-  const pBik = A1lib.ImageDetect.imageDataFromBase64(BIK_BASE64).then(img => {
-    bikImg = img;
-    console.log("bikImg loaded", img.width, img.height);
-
-    // Create a BuffInfo that can "improve" the template over time
-    bikBuffInfo = new BuffInfo(bikImg, false, "scripture_bik", true);
-  });
-
-  return Promise.all([pBorder, pBik]);
-}
-
-function initBuffReader() {
-  if (!buffBorderImg) {
-    console.warn("initBuffReader: buffBorderImg not loaded yet");
-    return;
-  }
-
-  buffReader = new BuffReader({
-    debuffs: false,
-    buffBorder: buffBorderImg
-  });
-
-  const fullImg = A1lib.captureHoldFullRs();
-  if (!fullImg) {
-    console.warn("initBuffReader: captureHoldFullRs() returned null");
-    return;
-  }
-
-  const found = buffReader.find(fullImg);
-  console.log("Buff bar found:", found, found ? buffReader.getCaptRect() : null);
-
-  if (found) {
-    drawBuffBarOverlay();
+function updateTooltip(hasSpirit, hasBik) {
+  if (!hasSpirit) {
+    alt1.setTooltip("SPIRIT inactive!");
+  } else if (!hasBik) {
+    alt1.setTooltip("BIK inactive!");
+  } else {
+    alt1.clearTooltip();
   }
 }
 
+function buffscanner() {
+  const rsBind = alt1.bindRegion(0, 0, alt1.rsWidth, alt1.rsHeight);
 
-// Draw a rectangle around the detected buff bar
-function drawBuffBarOverlay() {
-  if (!buffReader || !buffReader.pos) return;
+  let matches = [];
 
-  const rect = buffReader.getCaptRect();
-  if (!rect) return;
+  for (let buff of TRACKED_BUFFS) {
+    const result = JSON.parse(
+      alt1.bindFindSubImg(
+        rsBind,
+        buff.img.data,
+        buff.img.width,
+        0, 0,
+        alt1.rsWidth,
+        alt1.rsHeight
+      )
+    );
 
-  const color = A1lib.mixColor(0, 255, 0); // green
-  alt1.overLayRect(
-    color,
-    rect.x,
-    rect.y,
-    rect.width,
-    rect.height,
-    2000, // ms visible
-    2     // thickness
-  );
+    for (let m of result) {
+      matches.push({ ...m, type: buff.name });
+    }
+  }
+
+  const hasSpirit = matches.some(m => m.type === "SPIRIT");
+  const hasBik = matches.some(m => m.type === "BIK");
+
+  if (setting_spirit && !hasSpirit) {
+    playPingSound();
+  }
+
+  if (setting_autoStart && !hasBik) {
+    playPingSound();
+  }
+
+  updateTooltip(hasSpirit, hasBik);
+
+  if (setting_autoStart) {
+    hasBik ? startTimer() : stopTimer();
+  }
+
+  setTimeout(buffscanner, 600);
 }
 
-function isBikActive() {
-  if (!buffReader || !buffReader.pos || !bikBuffInfo) return false;
-
-  const state = buffReader.read(); // array of Buff
-  if (!state) return false;
-
-  // More forgiving matcher that can improve the template
-  const match = BuffReader.matchBuff(state, bikBuffInfo);
-
-  return !!match;
-}
-
-
-function setupBuffTracking() {
-  loadBuffAssets().then(() => {
-    initBuffReader();
-
-    setInterval(() => {
-/*
-      if(isBikActive()){
-        startTimer();
-      } else{
-        stopTimer()
-      }
-        */
-    }, 300); // roughly one RS tick
-  });
-}
-
-setupBuffTracking();
+buffscanner();
 
 
 
 // -------------------------
 // Helpers functions
 // -------------------------
+function playPingSound() {
+  pingAudio.currentTime = 0;
+  pingAudio.play().catch(err => console.log("Audio blocked:", err));
+}
+
 function saveDrops() {
   localStorage.setItem("clueDrops", JSON.stringify(clues));
   saveSessionTiming()
@@ -209,7 +167,7 @@ function saveDrops() {
 
 function saveSessionTiming() {
   const info = {
-    totalSessionMs: getSessionElapsedMs(), // full elapsed in this single session
+    totalSessionMs: getSessionElapsedMs(),
     savedAt: Date.now()
   };
   localStorage.setItem("clueSessionTiming", JSON.stringify(info));
@@ -217,14 +175,14 @@ function saveSessionTiming() {
 
 
 function msUntilNextTick(elapsed) {
-    const tick = 600; // RuneScape tick = 0.6 seconds
+    const tick = 600;
     const remainder = elapsed % tick;
     return remainder === 0 ? 0 : (tick - remainder);
 }
 function recordDrop(source, tier, quantity) {
   const drop = {
-    timestamp: Date.now(),     // real-world time
-    sessionTime: getSessionElapsedMs(),  // ms into this session
+    timestamp: Date.now(),
+    sessionTime: getSessionElapsedMs(),
     source: source,
     tier: tier,
     quantity: quantity
@@ -274,7 +232,6 @@ function getSessionElapsedMs() {
 // -------------------------
 // Alt1 chatbox setup
 // -------------------------
-
 window.setTimeout(() => {
     reader.readargs = {
         colors: [
@@ -323,7 +280,6 @@ function showSelectedChat(chat) {
 // -------------------------
 // Chatbox parsing
 // -------------------------
-
 function readChatbox() {
     const opts = reader.read() || [];
     let chatStr = "";
@@ -400,16 +356,13 @@ function getBikAnalyticsForUI() {
 
 
 function getAnalyticsSessionHours() {
-  // use the exact same notion of "elapsed" as the timer
-  const ms = getSessionElapsedMs(); // uses performance.now() - startTime when running
-  return ms > 0 ? ms / 3600000 : 0; // convert to hours
+  const ms = getSessionElapsedMs(); 
+  return ms > 0 ? ms / 3600000 : 0;
 }
-
 
 // -------------------------
 // Timer logic
 // -------------------------
-
 function startTimer() {
     if (isRunning) return;
     isRunning = true;
@@ -483,10 +436,7 @@ function resetTimer() {
 // -------------------------
 // Chat line interpretation
 // -------------------------
-
 function checkLine(line) {
-    console.log(line);
-
     if (!isRunning) return;
 
     line = line.toLowerCase();
@@ -519,14 +469,13 @@ function checkLine(line) {
 // -------------------------
 
 function updateGui() {
-  // initialise counters
   var totals =     { easy: 0, medium: 0, hard: 0, elite: 0, master: 0 };
   var bikTotals =  { easy: 0, medium: 0, hard: 0, elite: 0, master: 0 };
   var prosperTot = { easy: 0, medium: 0, hard: 0, elite: 0, master: 0 };
   var lootTotals = { easy: 0, medium: 0, hard: 0, elite: 0, master: 0 };
 
   clues.forEach(function (d) {
-    var tier = d.tier;           // "easy", "medium", ...
+    var tier = d.tier;
     var qty  = d.quantity || 1;
 
     if (!totals.hasOwnProperty(tier)) return;
@@ -545,7 +494,7 @@ function updateGui() {
   var tiers = ["easy", "medium", "hard", "elite", "master"];
 
   tiers.forEach(function (tier) {
-    var suffix = tier.charAt(0).toUpperCase() + tier.slice(1); // "easy" -> "Easy"
+    var suffix = tier.charAt(0).toUpperCase() + tier.slice(1);
 
     setText("total"   + suffix, totals[tier]);
     setText("bik"     + suffix, bikTotals[tier]);
@@ -571,9 +520,6 @@ function renderBikMatrix() {
   const hours = getAnalyticsSessionHours();
   const costInfo = getBikTierCostPerClue();
 
-  // --------------------------
-  // HEADER HANDLING
-  // --------------------------
   if (bikMatrixMode === "cluesPerHour") {
     // Tier | Clues/h | gp/clue
     thead.innerHTML = `
@@ -583,7 +529,6 @@ function renderBikMatrix() {
         <th>gp/clue</th>
       </tr>`;
   } else {
-    // Normal header (percent / count)
     thead.innerHTML = `
       <tr style="border-bottom:2px solid #b18b29;">
         <th>Tier</th>
@@ -593,39 +538,32 @@ function renderBikMatrix() {
       </tr>`;
   }
 
-  // --------------------------
-  // BODY ROWS
-  // --------------------------
   let totalCluesFromBik = 0;
 
   tiers.forEach(tier => {
     const iconPath = `images/${tier}_clue_scroll.png`;
 
-    // total clues for this tier (for some calculations)
     let tierTotalClues = 0;
     quantities.forEach(q => tierTotalClues += counts[tier][q] * q);
     totalCluesFromBik += tierTotalClues;
 
     if (bikMatrixMode === "cluesPerHour") {
-      // per-tier clues/h
-      const rate = hours > 0 ? (tierTotalClues / hours).toFixed(2) : "0.00";
+      const rate = hours > 0 ? (tierTotalClues / hours) : "0.00";
 
-      // gp/clue per tier from costInfo
       let costStr = "-";
       if (costInfo.hasData && costInfo.tierCostPerClue && costInfo.tierCostPerClue[tier] > 0) {
-        const gp = Math.round(costInfo.tierCostPerClue[tier]);
+        const gp = Math.round(costInfo.avgPageCost/3*4/rate);
         costStr = gp.toLocaleString() + " gp";
       }
 
       tbody.innerHTML += `
         <tr>
           <td><img class="npcIcon" src="${iconPath}" width="24"></td>
-          <td>${rate}</td>
+          <td>${rate.toFixed(2)}</td>
           <td>${costStr}</td>
         </tr>`;
 
     } else {
-      // percent / count modes
       let row = `<tr><td><img class="npcIcon" src="${iconPath}" width="24"></td>`;
       quantities.forEach(q => {
         const count = counts[tier][q];
@@ -645,9 +583,6 @@ function renderBikMatrix() {
     }
   });
 
-  // --------------------------
-  // FOOTER ROW
-  // --------------------------
   let footerText = "";
 
   const percent = bikProcRoll > 0
@@ -691,12 +626,10 @@ function getBikDryStreakInfo() {
     return { hasData: false };
   }
 
-  // All Bik procs in this session, sorted by sessionTime
   const bikDrops = clues
     .filter(d => d.source === "bik_book" && typeof d.sessionTime === "number")
     .sort((a, b) => a.sessionTime - b.sessionTime);
 
-  // If we have no procs yet, the whole session is one big current+worst dry streak
   if (!bikDrops.length) {
     const dryMinutes = Math.floor(nowMs / 60000);
     const prob = Math.pow(1 - PROC_CHANCE_PER_MIN, dryMinutes) * 100;
@@ -710,16 +643,11 @@ function getBikDryStreakInfo() {
     };
   }
 
-  // Current dry streak = time since last proc
   const lastProcTime = bikDrops[bikDrops.length - 1].sessionTime;
   const currentDryMinutes = Math.floor(Math.max(0, nowMs - lastProcTime) / 60000);
   const currentProbPercent = Math.pow(1 - PROC_CHANCE_PER_MIN, currentDryMinutes) * 100;
 
-  // Worst historical dry streak:
-  //  - from start -> first proc
-  //  - between consecutive procs
-  //  - current streak since last proc
-  let worstDryMinutes = Math.floor(bikDrops[0].sessionTime / 60000); // start -> first proc
+  let worstDryMinutes = Math.floor(bikDrops[0].sessionTime / 60000);
 
   for (let i = 1; i < bikDrops.length; i++) {
     const gapMs = bikDrops[i].sessionTime - bikDrops[i - 1].sessionTime;
@@ -745,46 +673,34 @@ function getBikDryStreakInfo() {
 }
 
 function updateBikModeButtons() {
-  const modes = [
-    { id: "bikModePercent",   mode: "percent" },
-    { id: "bikModeCount",     mode: "count" },
-    { id: "bikModeCluesHour", mode: "cluesPerHour" }
-  ];
+  const buttons = document.querySelectorAll("#bikModeGroup button");
 
-  modes.forEach(m => {
-    const btn = document.getElementById(m.id);
+  buttons.forEach(btn => {
+    const modeMap = {
+      percent: "percent",
+      count: "count",
+      clues: "cluesPerHour"
+    };
+
+    const mode = modeMap[btn.dataset.mode];
+    btn.classList.toggle("active", bikMatrixMode === mode);
+  });
+}
+
+const bikModeGroup = document.getElementById("bikModeGroup");
+
+if (bikModeGroup) {
+  bikModeGroup.addEventListener("click", (e) => {
+    const btn = e.target.closest("button");
     if (!btn) return;
-    if (bikMatrixMode === m.mode) {
-      btn.style.backgroundColor = "#b18b29";
-      btn.style.color = "#000";
-    } else {
-      btn.style.backgroundColor = "";
-      btn.style.color = "";
-    }
-  });
-}
 
-const modePercentBtn   = document.getElementById("bikModePercent");
-const modeCountBtn     = document.getElementById("bikModeCount");
-const modeCluesHourBtn = document.getElementById("bikModeCluesHour");
+    const modeMap = {
+      percent: "percent",
+      count: "count",
+      clues: "cluesPerHour"
+    };
 
-if (modePercentBtn) {
-  modePercentBtn.addEventListener("click", () => {
-    bikMatrixMode = "percent";
-    renderBikMatrix();
-  });
-}
-
-if (modeCountBtn) {
-  modeCountBtn.addEventListener("click", () => {
-    bikMatrixMode = "count";
-    renderBikMatrix();
-  });
-}
-
-if (modeCluesHourBtn) {
-  modeCluesHourBtn.addEventListener("click", () => {
-    bikMatrixMode = "cluesPerHour";
+    bikMatrixMode = modeMap[btn.dataset.mode];
     renderBikMatrix();
   });
 }
@@ -792,7 +708,7 @@ if (modeCluesHourBtn) {
 
 
 function loadSessionIntoTracker() {
-  // --- load clues ---
+  loadSettings();
   const rawClues = localStorage.getItem("clueDrops");
   if (rawClues) {
     try {
@@ -805,18 +721,17 @@ function loadSessionIntoTracker() {
     clues = [];
   }
 
-  // --- load timer/elapsed ---
   const rawTiming = localStorage.getItem("clueSessionTiming");
   if (rawTiming) {
     try {
       const info = JSON.parse(rawTiming);
       const elapsed = info.totalSessionMs || 0;
 
-      isRunning = false;                    // never auto-start
-      pausedTime = elapsed;                 // store as paused time
-      startTime = performance.now() - elapsed; // so Start resumes from here
+      isRunning = false;
+      pausedTime = elapsed;
+      startTime = performance.now() - elapsed;
 
-      updateTimerDisplay(pausedTime);       // show loaded time
+      updateTimerDisplay(pausedTime);
     } catch (e) {
       console.error("Failed to parse clueSessionTiming from storage", e);
       pausedTime = 0;
@@ -827,7 +742,6 @@ function loadSessionIntoTracker() {
     updateTimerDisplay(0);
   }
 
-  // Update clue table to match loaded data
   updateGui();
 }
 
@@ -860,9 +774,13 @@ function updateTimerDisplay(ms) {
 // -------------------------
 // Settings
 // -------------------------
-
 document.getElementById("autoStartCheckbox").addEventListener("change", e => {
     setting_autoStart = e.target.checked;
+    saveSettings();
+});
+
+document.getElementById("spiritCheckbox").addEventListener("change", e => {
+    setting_spirit = e.target.checked;
     saveSettings();
 });
 
@@ -873,27 +791,25 @@ function loadSettings() {
         try {
             const data = JSON.parse(raw);
             setting_autoStart = !!data.autoStart;
-            setting_stickyFingers = !!data.stickyFingers;
+            setting_spirit = !!data.stickyFingers;
         } catch (e) {}
     }
 
-    // Reflect in UI
     document.getElementById("autoStartCheckbox").checked = setting_autoStart;
-    document.getElementById("stickyFingersCheckbox").checked = setting_stickyFingers;
+    document.getElementById("spiritCheckbox").checked = setting_spirit;
 }
 
 function saveSettings() {
     const data = {
         autoStart: setting_autoStart,
-        stickyFingers: setting_stickyFingers
+        stickyFingers: setting_spirit
     };
     localStorage.setItem("ppTrackerSettings", JSON.stringify(data));
 }
 
 // -------------------------
-// Save/load system (MULTI SAVE)
+// Save/load system
 // -------------------------
-
 function loadBikPurchases() {
   const raw = localStorage.getItem(BIK_PURCHASES_KEY);
   if (!raw) {
@@ -921,6 +837,7 @@ function saveBikPurchases() {
 
 
 function renderBikHistory() {
+  console.log(bikPurchases)
   const container = document.getElementById("historyContent");
   if (!container) return;
 
@@ -929,10 +846,8 @@ function renderBikHistory() {
     return;
   }
 
-  // Newest first
   const sorted = bikPurchases.slice().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-  // Total / average
   let totalPages = 0;
   let totalPrice = 0;
   sorted.forEach(p => {
@@ -952,6 +867,7 @@ function renderBikHistory() {
       <div><strong>Cost per hour:</strong> ${Math.round(gpPerHour).toLocaleString()} gp/h</div>
       <div>Total pages: ${totalPages.toLocaleString()} - Total spent: ${totalPrice.toLocaleString()} gp</div>
     </div>
+    
     <table style="width:100%; border-collapse:collapse; text-align:left; font-size:12px;">
 <thead>
   <tr style="border-bottom:1px solid #b18b29;">
@@ -1017,14 +933,15 @@ html += `
 `;
 
 
+
+
   container.innerHTML = html;
 }
 
-// Delete Bik purchase by timestamp
 function deleteBikPurchase(ts) {
   bikPurchases = bikPurchases.filter(p => p.timestamp !== ts);
   saveBikPurchases();
-  renderBikHistory(); // re-render instantly
+  renderBikHistory();
 }
 
 document.addEventListener("click", (e) => {
@@ -1037,18 +954,24 @@ document.addEventListener("click", (e) => {
 });
 
 function getBikTierCostPerClue() {
+  console.log("??")
   const tiers = ["easy", "medium", "hard", "elite", "master"];
 
-  // 1) Purchases: how many pages did we buy, what's the total cost?
+  if (!Array.isArray(bikPurchases) || !Array.isArray(clues)) {
+    return {
+      hasData: false,
+      tierClueCounts: {},
+      tierCostPerClue: {}
+    };
+  }
+
   let totalPurchasedPages = 0;
   let totalPurchasedCost = 0;
 
-  if (Array.isArray(bikPurchases)) {
-    bikPurchases.forEach(p => {
-      totalPurchasedPages += p.pages || 0;
-      totalPurchasedCost += p.totalPrice || 0;
-    });
-  }
+  bikPurchases.forEach(p => {
+    totalPurchasedPages += p.pages || 0;
+    totalPurchasedCost += p.totalPrice || 0;
+  });
 
   if (totalPurchasedPages <= 0 || totalPurchasedCost <= 0) {
     return {
@@ -1058,49 +981,49 @@ function getBikTierCostPerClue() {
     };
   }
 
-  const avgPageCost = totalPurchasedCost / totalPurchasedPages; // gp per page
-
-  // 2) How much paid time have we actually used?
-  const minutesPlayed = getSessionElapsedMs() / 1000 / 60;
-  const pagesConsumedRaw = minutesPlayed / 45; // 45 min per page
-
-  const pagesConsumed = Math.min(pagesConsumedRaw, totalPurchasedPages);
-  const costConsumed = pagesConsumed * avgPageCost;
-
-  // 3) Count Bik clues per tier
+  // 📊 Count clues per tier
   const tierClueCounts = {};
   tiers.forEach(t => (tierClueCounts[t] = 0));
 
   clues.forEach(d => {
-    if (d.source === "bik_book" && d.tier && tierClueCounts.hasOwnProperty(d.tier)) {
-      tierClueCounts[d.tier] += d.quantity || 1;
+    if (
+      d.source === "bik_book" &&
+      d.tier &&
+      tierClueCounts.hasOwnProperty(d.tier)
+    ) {
+      const qty = d.quantity || 1;
+      tierClueCounts[d.tier] += qty;
     }
   });
 
-  // 4) Cost per clue per tier
+  const totalClues = Object.values(tierClueCounts).reduce((a, b) => a + b, 0);
+
+  if (totalClues === 0) {
+    return {
+      hasData: false,
+      tierClueCounts,
+      tierCostPerClue: {}
+    };
+  }
+
   const tierCostPerClue = {};
   tiers.forEach(tier => {
     const count = tierClueCounts[tier];
-    if (costConsumed > 0 && count > 0) {
-      tierCostPerClue[tier] = costConsumed / count;
-    } else {
-      tierCostPerClue[tier] = 0;
-    }
+    tierCostPerClue[tier] = count > 0
+      ? totalPurchasedCost / count
+      : 0;
   });
 
   return {
-    hasData: costConsumed > 0,
-    minutesPlayed,
-    pagesConsumed,
+    hasData: true,
     totalPurchasedPages,
     totalPurchasedCost,
-    avgPageCost,
-    costConsumed,
+    totalClues,
+    avgPageCost: totalPurchasedCost / totalPurchasedPages,
     tierClueCounts,
     tierCostPerClue
   };
 }
-
 
 
 function populateDummyData(count = 50) {
@@ -1114,23 +1037,20 @@ function populateDummyData(count = 50) {
     const src = sources[Math.floor(Math.random() * sources.length)];
     const tier = tiers[Math.floor(Math.random() * tiers.length)];
 
-    // quantity rules
     let qty = 1;
     if (src === "bik_book") {
       qty = Math.floor(Math.random() * 3) + 1; // 1–3
       bikProcCount++;
     }
 
-    // random timestamp within the past 3 hours
     const timestamp = now - Math.floor(Math.random() * threeHours);
     clues.push({
     timestamp: timestamp,
-    sessionTime: Math.floor(Math.random() * (3 * 60 * 60 * 1000)), // random in 3 hours
+    sessionTime: Math.floor(Math.random() * (3 * 60 * 60 * 1000)),
     source: src,
     tier: tier,
     quantity: qty
     });
-
 
     saveDrops();
     updateGui();
@@ -1139,7 +1059,6 @@ function populateDummyData(count = 50) {
 
 
 //populateDummyData(50); // generates 50 random drops
-
 
 function renderHistory() {
   const container = document.getElementById("historyContent");
@@ -1150,7 +1069,6 @@ function renderHistory() {
     return;
   }
 
-  // Newest first: sort by timestamp descending
   const sorted = clues.slice().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
   let html = `
@@ -1214,49 +1132,62 @@ if (showBikHistoryBtn) {
 
 function parsePriceInput(str) {
   if (!str) return 0;
-  // Keep only digits, so it handles "45 784 124", "45,784,124", etc.
   const clean = str.replace(/[^\d]/g, "");
   const value = parseInt(clean, 10);
   return Number.isNaN(value) ? 0 : value;
 }
 
 const addBikPurchaseBtn = document.getElementById("addBikPurchaseBtn");
+
 if (addBikPurchaseBtn) {
   addBikPurchaseBtn.addEventListener("click", () => {
     const pagesInput = document.getElementById("bikPagesInput");
     const priceInput = document.getElementById("bikPriceInput");
-    if (!pagesInput || !priceInput) return;
+    const errorEl = document.getElementById("bikPurchaseError");
+
+    if (!pagesInput || !priceInput || !errorEl) return;
 
     const pages = parseInt(pagesInput.value, 10);
     const totalPrice = parsePriceInput(priceInput.value);
 
+    errorEl.textContent = "";
+
     if (!pages || pages <= 0) {
-      console.warn("Invalid pages value");
-      return;
-    }
-    if (!totalPrice || totalPrice <= 0) {
-      console.warn("Invalid price value");
+      errorEl.textContent = "Enter a valid number of pages.";
       return;
     }
 
+    if (!totalPrice || totalPrice <= 0) {
+      errorEl.textContent = "Enter a valid total price.";
+      return;
+    }
+
+    pricePerPage = totalPrice/pages;
+
     const purchase = {
-      pages: pages,
-      totalPrice: totalPrice,
+      pages,
+      totalPrice,
+      pricePerPage,
       timestamp: Date.now()
     };
 
     bikPurchases.push(purchase);
     saveBikPurchases();
-    renderBikPurchases();
 
-    // Optional: clear inputs
+    errorEl.style.color = "#6fff9c";
+    errorEl.textContent = "Purchase added!";
+
     pagesInput.value = "";
     priceInput.value = "";
+
+    setTimeout(() => {
+      errorEl.textContent = "";
+      errorEl.style.color = "#ff6b6b";
+    }, 2000);
   });
 }
 
 function getBikCostAnalytics() {
-  // 1. purchased totals
   let totalPurchasedPages = 0;
   let totalPurchasedCost = 0;
 
@@ -1265,7 +1196,6 @@ function getBikCostAnalytics() {
     totalPurchasedCost += p.totalPrice || 0;
   });
 
-  // 2. earned pages from Bik
   let totalBikPagesEarned = 0;
   clues.forEach(d => {
     if (d.source === "bik_book") {
@@ -1273,12 +1203,10 @@ function getBikCostAnalytics() {
     }
   });
 
-  // 3. average cost basis
   const avgPageCost = totalPurchasedPages > 0
     ? totalPurchasedCost / totalPurchasedPages
     : 0;
 
-  // 4. price per clue = price per page
   const gpPerClue = avgPageCost;
 
   return {
@@ -1289,5 +1217,3 @@ function getBikCostAnalytics() {
     gpPerClue
   };
 }
-
-
